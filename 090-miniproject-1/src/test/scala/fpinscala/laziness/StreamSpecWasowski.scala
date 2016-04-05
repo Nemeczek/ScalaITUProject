@@ -80,8 +80,10 @@ class StreamSpecWasowski extends FlatSpec with Checkers {
 
   it should "always be true that s.drop(n).drop(m) == s.drop(n+m) for any n, m (01)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genNonEmptyStream[Int])
+    implicit def arbInt = Arbitrary[Int] (Gen.choose(0,1000))
+   // implicit def arbIntM = Arbitrary[Int] (Gen.choose(0,Int.MaxValue))
       "additivity" |:
-      Prop.forAll { (n: Int, m:Int, s:Stream[Int]) => s.drop(n).drop(m) == s.drop(n+m) }
+      Prop.forAll { (n: Int, m:Int, s:Stream[Int]) => s.drop(n).drop(m).toList == s.drop(n+m).toList }
   }
 
   // TODO
