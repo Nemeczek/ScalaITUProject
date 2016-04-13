@@ -10,6 +10,8 @@ import org.scalacheck._
 import org.scalacheck.Prop._
 import Arbitrary.arbitrary
 
+import scala.util.Random
+
 // If you comment out all the import lines below, then you test the Scala
 // Standard Library implementation of Streams. Interestingly, the standard
 // library streams are stricter than those from the book, so some laziness tests
@@ -19,10 +21,11 @@ import Arbitrary.arbitrary
 // import stream01._ // uncomment to test the broken headOption implementation
 // import stream02._ // uncomment to test another version that breaks headOption
 
-class StreamSpecWasowski extends FlatSpec with Checkers {
+class StreamSpecRLOCRADN extends FlatSpec with Checkers {
 
   import Stream._
 
+  // headOption ----------------------------------------
   behavior of "headOption"
 
   // a scenario test:
@@ -49,7 +52,6 @@ class StreamSpecWasowski extends FlatSpec with Checkers {
 
   }
 
-  // TODO (03)
   // a property test:
   it should "not force the tail of the stream (03)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genNonEmptyStream[Int])
@@ -57,14 +59,16 @@ class StreamSpecWasowski extends FlatSpec with Checkers {
       Prop.forAll { (n :Int) => cons(n, empty).headOption.contains(n) }
   }
 
-  // TODO
+  // take ----------------------------------------
   behavior of "take"
-/*  - take should not force any heads nor any tails of the Stream it
-  manipulates
-  - take(n) does not force (n+1)st head ever (even if we force all
-  elements of take(n))
-  - s.take(n).take(n) == s.take(n) for any Stream s and any n
-    (idempotency)*/
+
+  it should "not force any heads nor any tails of the Stream it manipulates and not force (n+1)st head (force) (01 + 02)" in check {
+    Prop.forAll { (n :Int) => {
+      def intStream:Stream[Int] = cons(throw new AssertionError, throw new AssertionError)
+      intStream.take(n)
+      true
+    }}
+  }
 
   it should "always be true that s.take(n).take(n) == s.take(n) for any Stream s and any n (03)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genNonEmptyStream[Int])
@@ -72,11 +76,8 @@ class StreamSpecWasowski extends FlatSpec with Checkers {
       Prop.forAll { (n:Int, s:Stream[Int]) => s.take(n).take(n).toList == s.take(n).toList }
   }
 
-  // TODO
+  // drop ----------------------------------------
   behavior of "drop"
-  /*- s.drop(n).drop(m) == s.drop(n+m) for any n, m (additivity)
-  - s.drop(n) does not force any of the dropped elements heads
-    - the above should hold even if we force some stuff in the tail*/
 
   it should "always be true that s.drop(n).drop(m) == s.drop(n+m) for any n, m (01)" in check {
     implicit def arbIntStream = Arbitrary[Stream[Int]] (genNonEmptyStream[Int])
@@ -86,22 +87,30 @@ class StreamSpecWasowski extends FlatSpec with Checkers {
       Prop.forAll { (n: Int, m:Int, s:Stream[Int]) => s.drop(n).drop(m).toList == s.drop(n+m).toList }
   }
 
-  // TODO
+  // the below test is expected to fail, if a call to 'drop' is not lazy
+  it should "hold that s.drop(n) does not force any of the dropped elements heads (02)" in check {
+    Prop.forAll { (n :Int) => {
+      def intStream:Stream[Int] = cons(throw new AssertionError(), intStream)
+      intStream.drop(n%1000) // n mod 1000 --> handling of large/negative inputs
+      true
+    }}
+  }
+
+  // map
   behavior of "map"
-/*  - x.map(id) == x (where id is the identity function)
-  - map terminates on infinite streams*/
 
-  // a scenario test
+  it should "hold that x.map(id) == x (01)" in check {
+    implicit def arbIntStream = Arbitrary[Stream[Int]] (genNonEmptyStream[Int])
+    Prop.forAll { (s:Stream[Int]) => s.map(x=>x).take(math.abs(Random.nextInt)).toList.zip(s.take(math.abs(Random.nextInt)).toList).forall{
+      case(x,y) => x == y }
+    }
+  }
 
+  // TODO  map (02) ??? It will crash ???
 
-  // a property test
-
-  // TODO
+  // append ----------------------------------------
   behavior of "append"
 
-  // a scenario test
-
-
-  // a property test
+  // TODO Propose properties yourself ...
 
 }
